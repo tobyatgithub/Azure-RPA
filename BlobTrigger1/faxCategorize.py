@@ -16,6 +16,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+endpoint = os.environ["END_POINT"]
+apim_key = os.environ["API_KEY"]
+storage_account_name = os.environ["STORAGE_ACCOUNT_NAME"]
+storage_account_key = os.environ["STORAGE_ACCOUNT_KEY"]
+
 def main(myblob: func.InputStream):
     logging.info(
         f"Python blob trigger function processed blob \n"
@@ -24,9 +29,6 @@ def main(myblob: func.InputStream):
     )
 
     # Azure Function App - radiologyrequests - Configuration - Application settings
-    endpoint = os.environ["END_POINT"]
-    apim_key = os.environ["API_KEY"]
-
     source = myblob.read()  # read file in bytes
 
     # sample document
@@ -142,29 +144,17 @@ def main(myblob: func.InputStream):
 
     # https://learn.microsoft.com/en-us/python/api/overview/azure/storage-blob-readme?view=azure-python#creating-the-client-from-a-connection-string
     # This is the connection to the blob storage, with the Azure Python SDK
-    # blob_service_client = BlobServiceClient.from_connection_string(
-    #     "DefaultEndpointsProtocol=https;AccountName=neufaxstorage;AccountKey=h+Kt/4Zwr2PkIPmRXZskj1mttcuj/Msxcg0K3IF2MVsqZf0PscH4vxeQflB5TbDtVdB6wGqAIHQF+AStjOEXlg==;EndpointSuffix=core.windows.net")
-    storage_account_name = os.environ["STORAGE_ACCOUNT_NAME"]
-    storage_account_key = os.environ["STORAGE_ACCOUNT_KEY"]
+
     blob_service_client = BlobServiceClient.from_connection_string(f"DefaultEndpointsProtocol=https;AccountName={storage_account_name};AccountKey={storage_account_key};EndpointSuffix=core.windows.net")
-    
-    # blob_service_client = BlobServiceClient(
-    #     account_url="https://neufaxstorage.blob.core.windows.net",
-    #     credential={
-    #         "account_name": storage_account_name,
-    #         "account_key": storage_account_key,
-    #     },
-    # )
 
     container_client = blob_service_client.get_container_client("output")
-    text1 = os.path.basename(myblob.name)
-    name1 = (os.path.splitext(text1)[0]) + ".json"
+    filename = os.path.basename(myblob.name)
 
     # save the dictionary as JSON content in a JSON file, use the AzureJSONEncoder
     # to help make types, such as dates, JSON serializable
     # NOTE: AzureJSONEncoder is only available with azure.core>=1.18.0.
     container_client.upload_blob(
-        name=name1,
+        name=(os.path.splitext(filename)[0]) + ".json",
         data=json.dumps(analyze_result_dict, cls=AzureJSONEncoder),
         overwrite=True,
     )
