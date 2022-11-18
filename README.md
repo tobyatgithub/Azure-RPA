@@ -5,10 +5,10 @@ In this repo, I tested how to use Azure Python SDK to conduct some RPA tasks.
 
 The 2 examples I did so far:
 1. The blob [tutorial](https://learn.microsoft.com/en-us/azure/applied-ai-services/form-recognizer/tutorial-azure-function?view=form-recog-3.0.0&source=docs) from Azure
-2. The pdf with form-recognizer in the capstone project 2022 (where we receive medical request forms and use key words to categorzie them into several different pre-determined classes, and save to different containers accordingly.)
+2. The pdf with form-recognizer in the capstone project 2022 (where we receive medical request forms and use key words to categorize them into several different pre-determined classes, and save to different containers accordingly.)
 
 ## How to run
-Pretty much similar to the step mentioned in the blob tutorial above, and here're the summaizred steps:
+Pretty much similar to the step mentioned in the blob tutorial above, and here're the summarized steps:
 1. install required library and plugins (Azure Account, Azure Functions, Azure Resources, Python, etc.) recommend installation via the tutorial material.
 2. log in the azure account (via click the azure tab on the left tab bar of vs code.)
 3. after log in the account via azure tab, make sure you have "BlobTrigger1" under "WORKSPACE -> Local Project -> Functions". (if not, check tutorial)
