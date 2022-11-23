@@ -27,4 +27,4 @@ Idea for the 1st version:
 - If multiple ones are true, we then check the key value pair for the "requested" key and use the associated content to make the decision.
 - If neither method triggers, then put into undecided folder.
 
-Probably shall add a logging as (bcz this this this condition, thus file <...> is saved to xxx folder.) The reason being the first method (key word) shall be very reliable, and not so much for the second method.
+Probably shall add a logging as (because this this this condition, thus file <...> is saved to xxx folder.) The reason being the first method (key word) shall be very reliable, and not so much for the second method.

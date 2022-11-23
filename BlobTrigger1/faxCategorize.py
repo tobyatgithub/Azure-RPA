@@ -13,6 +13,7 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
+from typing import List
 
 load_dotenv()
 
@@ -20,6 +21,58 @@ endpoint = os.environ["END_POINT"]
 apim_key = os.environ["API_KEY"]
 storage_account_name = os.environ["STORAGE_ACCOUNT_NAME"]
 storage_account_key = os.environ["STORAGE_ACCOUNT_KEY"]
+
+CT_FOLDER = "ct-requests"
+MR_FOLDER = "mr-requests"
+US_FOLDER = "us-requests"
+BS_FOLDER = "bs-requests"
+
+
+def getKeyValuePairsFromJson(data, showPrint=False):
+    # contents = data["key_value_pairs"]
+    contents = data.key_value_pairs
+
+    keyList, valList = [], []
+    for content in contents:
+        try:
+            keyList.append(content["key"]["content"])
+            # tmp = content.get("value", {})
+            tmp = content.value
+            if tmp:
+                # valList.append(tmp.get("content", None))
+                valList.append(tmp.content)
+            else:
+                valList.append("NoValue")
+        except:
+            print("hmmm..strange why get() will return None for some tmp.")
+            print(tmp)
+            print(content)
+            
+    if showPrint:
+        for key, value in zip(keyList, valList):
+            print(key, "||", value)
+    
+    return keyList, valList
+
+def getPageTextFromJson(data, showPrint=False):
+    textList = []
+    # for page in data["pages"]:
+    for page in data.pages:
+        # for line in page["lines"]:
+        for line in page.lines:
+            # textList.append(line.get("content").lower().strip())
+            textList.append(line.content.lower().strip())
+    
+    if showPrint:
+        print(len(textList), textList)
+        
+    return textList
+
+def searchKeyWordFromTextList(keyWord:str, textList: List[str]) -> bool:
+    for text in textList:
+        if keyWord in text:
+            return True
+    return False
 
 def main(myblob: func.InputStream):
     logging.info(
@@ -41,6 +94,41 @@ def main(myblob: func.InputStream):
         "prebuilt-document", source
     )
     result = poller.result()
+
+    # categorizing
+    outputFolderName = "undecided"
+    allText = getPageTextFromJson(result)
+    hasCTKeyWord = searchKeyWordFromTextList("computed tomography", allText)
+    hasUltrasoundKeyWord = searchKeyWordFromTextList("ultrasound", allText)
+    hasMRKeyWord = searchKeyWordFromTextList("magnetic resonance", allText)
+    hasBSKeyWord = searchKeyWordFromTextList("breast scan", allText)
+
+    keyWordSum = hasCTKeyWord + hasUltrasoundKeyWord + hasMRKeyWord + hasBSKeyWord
+    # case 1, only 1 keyword found
+    if keyWordSum == 1:
+        if hasCTKeyWord:
+            outputFolderName = CT_FOLDER
+        elif hasUltrasoundKeyWord:
+            outputFolderName = US_FOLDER
+        elif hasMRKeyWord:
+            outputFolderName = MR_FOLDER
+        elif hasBSKeyWord:
+            outputFolderName = BS_FOLDER
+        else:
+            raise("Categorize error! Keyword mismatch.")
+    # case 2, if no keyword found or multiple key word found, use key-value pair info
+    else:
+        keyList, valueList = getKeyValuePairsFromJson(result.key_value_pairs)
+        for key, value in zip(keyList, valueList):
+            if "exam requested" in key.stripe().lower():
+                if "CT" in value:
+                    outputFolderName = CT_FOLDER
+                elif "US" in value:
+                    outputFolderName = US_FOLDER
+                elif "MR" in value:
+                    outputFolderName = MR_FOLDER
+                elif "BS" in value:
+                    outputFolderName = BS_FOLDER
 
     # print("----Key-value pairs found in document----")
     # for kv_pair in result.key_value_pairs:
@@ -147,7 +235,8 @@ def main(myblob: func.InputStream):
 
     blob_service_client = BlobServiceClient.from_connection_string(f"DefaultEndpointsProtocol=https;AccountName={storage_account_name};AccountKey={storage_account_key};EndpointSuffix=core.windows.net")
 
-    container_client = blob_service_client.get_container_client("output")
+    # container_client = blob_service_client.get_container_client("output")
+    container_client = blob_service_client.get_container_client(outputFolderName)
     filename = os.path.basename(myblob.name)
 
     # save the dictionary as JSON content in a JSON file, use the AzureJSONEncoder
@@ -156,5 +245,13 @@ def main(myblob: func.InputStream):
     container_client.upload_blob(
         name=(os.path.splitext(filename)[0]) + ".json",
         data=json.dumps(analyze_result_dict, cls=AzureJSONEncoder),
+        overwrite=True,
+    )
+
+    # also save a copy
+    backup_container_client = blob_service_client.get_container_client("output")
+    backup_container_client.upload_blob(
+        name=(os.path.splitext(filename)[0]) + ".pdf",
+        data=source,
         overwrite=True,
     )
