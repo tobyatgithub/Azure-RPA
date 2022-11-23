@@ -12,8 +12,8 @@ import os
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
-from dotenv import load_dotenv
 from typing import List
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -26,53 +26,57 @@ CT_FOLDER = "ct-requests"
 MR_FOLDER = "mr-requests"
 US_FOLDER = "us-requests"
 BS_FOLDER = "bs-requests"
+XR_FOLDER = "xr-requests"
 
 
 def getKeyValuePairsFromJson(data, showPrint=False):
-    # contents = data["key_value_pairs"]
-    contents = data.key_value_pairs
+    contents = data.get("key_value_pairs", [])
+    # contents = data.key_value_pairs
 
     keyList, valList = [], []
     for content in contents:
         try:
-            keyList.append(content["key"]["content"])
-            # tmp = content.get("value", {})
-            tmp = content.value
+            keyList.append(content.get("key", {}).get("content", None))
+            tmp = content.get("value", {})
+            # tmp = content.value
             if tmp:
-                # valList.append(tmp.get("content", None))
-                valList.append(tmp.content)
+                valList.append(tmp.get("content", None))
+                # valList.append(tmp.content)
             else:
                 valList.append("NoValue")
         except:
             print("hmmm..strange why get() will return None for some tmp.")
             print(tmp)
             print(content)
-            
+
     if showPrint:
         for key, value in zip(keyList, valList):
             print(key, "||", value)
-    
+
     return keyList, valList
+
 
 def getPageTextFromJson(data, showPrint=False):
     textList = []
-    # for page in data["pages"]:
-    for page in data.pages:
-        # for line in page["lines"]:
-        for line in page.lines:
-            # textList.append(line.get("content").lower().strip())
-            textList.append(line.content.lower().strip())
-    
+    for page in data["pages"]:
+        # for page in data.pages:
+        for line in page["lines"]:
+            # for line in page.lines:
+            textList.append(line.get("content").lower().strip())
+            # textList.append(line.content.lower().strip())
+
     if showPrint:
         print(len(textList), textList)
-        
+
     return textList
 
-def searchKeyWordFromTextList(keyWord:str, textList: List[str]) -> bool:
+
+def searchKeyWordFromTextList(keyWord: str, textList: List[str]) -> bool:
     for text in textList:
         if keyWord in text:
             return True
     return False
+
 
 def main(myblob: func.InputStream):
     logging.info(
@@ -95,15 +99,23 @@ def main(myblob: func.InputStream):
     )
     result = poller.result()
 
+    # https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/formrecognizer/azure-ai-formrecognizer/samples/v3.2/sample_convert_to_and_from_dict.py
+    # convert the received model to a dictionary
+    analyze_result_dict = result.to_dict()  # {key: {}}
+
     # categorizing
     outputFolderName = "undecided"
-    allText = getPageTextFromJson(result)
+    allText = getPageTextFromJson(analyze_result_dict)
     hasCTKeyWord = searchKeyWordFromTextList("computed tomography", allText)
-    hasUltrasoundKeyWord = searchKeyWordFromTextList("ultrasound", allText)
+    hasUltrasoundKeyWord = searchKeyWordFromTextList("ultrasound (us)", allText) or searchKeyWordFromTextList(
+        "ultrasound (us) requisition", allText) or searchKeyWordFromTextList("ultrasound consultation", allText)
     hasMRKeyWord = searchKeyWordFromTextList("magnetic resonance", allText)
-    hasBSKeyWord = searchKeyWordFromTextList("breast scan", allText)
+    hasBSKeyWord = searchKeyWordFromTextList(
+        "breast scan", allText) or searchKeyWordFromTextList("breast imaging", allText)
+    hasXRayKeyWord = searchKeyWordFromTextList("x-ray requisition", allText)
 
-    keyWordSum = hasCTKeyWord + hasUltrasoundKeyWord + hasMRKeyWord + hasBSKeyWord
+    keyWordSum = hasCTKeyWord + hasUltrasoundKeyWord + \
+        hasMRKeyWord + hasBSKeyWord + hasXRayKeyWord
     # case 1, only 1 keyword found
     if keyWordSum == 1:
         if hasCTKeyWord:
@@ -114,22 +126,29 @@ def main(myblob: func.InputStream):
             outputFolderName = MR_FOLDER
         elif hasBSKeyWord:
             outputFolderName = BS_FOLDER
+        elif hasXRayKeyWord:
+            outputFolderName = XR_FOLDER
         else:
-            raise("Categorize error! Keyword mismatch.")
+            raise ("Categorize error! Keyword mismatch.")
     # case 2, if no keyword found or multiple key word found, use key-value pair info
     else:
-        keyList, valueList = getKeyValuePairsFromJson(result.key_value_pairs)
+        keyList, valueList = getKeyValuePairsFromJson(analyze_result_dict)
         for key, value in zip(keyList, valueList):
-            if "exam requested" in key.stripe().lower():
-                if "CT" in value:
-                    outputFolderName = CT_FOLDER
-                elif "US" in value:
-                    outputFolderName = US_FOLDER
-                elif "MR" in value:
-                    outputFolderName = MR_FOLDER
-                elif "BS" in value:
-                    outputFolderName = BS_FOLDER
 
+            if ("exam requested" in key.strip().lower() or
+                "EXAM(s) REQUESTED".lower() in key.strip().lower() or
+                    "EXAM (s) REQUESTED".lower() in key.strip().lower()):
+
+                if "ct" in value.lower():
+                    outputFolderName = CT_FOLDER
+                elif "us" in value.lower():
+                    outputFolderName = US_FOLDER
+                elif "mr" in value.lower():
+                    outputFolderName = MR_FOLDER
+                elif "bs" in value.lower():
+                    outputFolderName = BS_FOLDER
+    logging.info("toby1")
+    print("toby2")
     # print("----Key-value pairs found in document----")
     # for kv_pair in result.key_value_pairs:
     #     if kv_pair.key:
@@ -215,10 +234,6 @@ def main(myblob: func.InputStream):
 
     # print("----------------------------------------")
 
-    # https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/formrecognizer/azure-ai-formrecognizer/samples/v3.2/sample_convert_to_and_from_dict.py
-    # convert the received model to a dictionary
-    analyze_result_dict = result.to_dict()
-
     # convert the dictionary back to the original model
     model = AnalyzeResult.from_dict(analyze_result_dict)
 
@@ -233,10 +248,12 @@ def main(myblob: func.InputStream):
     # https://learn.microsoft.com/en-us/python/api/overview/azure/storage-blob-readme?view=azure-python#creating-the-client-from-a-connection-string
     # This is the connection to the blob storage, with the Azure Python SDK
 
-    blob_service_client = BlobServiceClient.from_connection_string(f"DefaultEndpointsProtocol=https;AccountName={storage_account_name};AccountKey={storage_account_key};EndpointSuffix=core.windows.net")
+    blob_service_client = BlobServiceClient.from_connection_string(
+        f"DefaultEndpointsProtocol=https;AccountName={storage_account_name};AccountKey={storage_account_key};EndpointSuffix=core.windows.net")
 
     # container_client = blob_service_client.get_container_client("output")
-    container_client = blob_service_client.get_container_client(outputFolderName)
+    container_client = blob_service_client.get_container_client(
+        outputFolderName)
     filename = os.path.basename(myblob.name)
 
     # save the dictionary as JSON content in a JSON file, use the AzureJSONEncoder
@@ -247,9 +264,15 @@ def main(myblob: func.InputStream):
         data=json.dumps(analyze_result_dict, cls=AzureJSONEncoder),
         overwrite=True,
     )
+    container_client.upload_blob(
+        name=(os.path.splitext(filename)[0]) + ".pdf",
+        data=source,
+        overwrite=True,
+    )
 
     # also save a copy
-    backup_container_client = blob_service_client.get_container_client("output")
+    backup_container_client = blob_service_client.get_container_client(
+        "output")
     backup_container_client.upload_blob(
         name=(os.path.splitext(filename)[0]) + ".pdf",
         data=source,
