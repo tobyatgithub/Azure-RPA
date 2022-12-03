@@ -13,6 +13,15 @@ Here are the 2 components of Azure python SDK I used:
 1. The blob [tutorial](https://learn.microsoft.com/en-us/azure/applied-ai-services/form-recognizer/tutorial-azure-function?view=form-recog-3.0.0&source=docs) from Azure
 2. The pdf with form-recognizer in the capstone project 2022 (where we receive medical request forms and use key words to categorize them into several different pre-determined classes, and save to different containers accordingly.)
 
+## Existing Approach
+
+![Existing approach](./existingSolution.png)
+This is the existing approach where the major pain point is the heavily human labor required step 1-4.
+
+## Proposed Approach
+
+![our solution](./approach.png)
+
 ## How to run
 
 Pretty much similar to the step mentioned in the blob tutorial above, and here're the summarized steps:
