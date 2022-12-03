@@ -107,15 +107,24 @@ def main(myblob: func.InputStream):
     outputFolderName = "undecided"
     allText = getPageTextFromJson(analyze_result_dict)
     hasCTKeyWord = searchKeyWordFromTextList("computed tomography", allText)
-    hasUltrasoundKeyWord = searchKeyWordFromTextList("ultrasound (us)", allText) or searchKeyWordFromTextList(
-        "ultrasound (us) requisition", allText) or searchKeyWordFromTextList("ultrasound consultation", allText)
+    hasUltrasoundKeyWord = (
+        searchKeyWordFromTextList("ultrasound (us)", allText)
+        or searchKeyWordFromTextList("ultrasound (us) requisition", allText)
+        or searchKeyWordFromTextList("ultrasound consultation", allText)
+    )
     hasMRKeyWord = searchKeyWordFromTextList("magnetic resonance", allText)
     hasBSKeyWord = searchKeyWordFromTextList(
-        "breast scan", allText) or searchKeyWordFromTextList("breast imaging", allText)
+        "breast scan", allText
+    ) or searchKeyWordFromTextList("breast imaging", allText)
     hasXRayKeyWord = searchKeyWordFromTextList("x-ray requisition", allText)
 
-    keyWordSum = hasCTKeyWord + hasUltrasoundKeyWord + \
-        hasMRKeyWord + hasBSKeyWord + hasXRayKeyWord
+    keyWordSum = (
+        hasCTKeyWord
+        + hasUltrasoundKeyWord
+        + hasMRKeyWord
+        + hasBSKeyWord
+        + hasXRayKeyWord
+    )
     # case 1, only 1 keyword found
     if keyWordSum == 1:
         if hasCTKeyWord:
@@ -134,11 +143,11 @@ def main(myblob: func.InputStream):
     else:
         keyList, valueList = getKeyValuePairsFromJson(analyze_result_dict)
         for key, value in zip(keyList, valueList):
-
-            if ("exam requested" in key.strip().lower() or
-                "EXAM(s) REQUESTED".lower() in key.strip().lower() or
-                    "EXAM (s) REQUESTED".lower() in key.strip().lower()):
-
+            if (
+                "exam requested" in key.strip().lower()
+                or "exam(s) requested" in key.strip().lower()
+                or "exam (s) requested" in key.strip().lower()
+            ):
                 if "ct" in value.lower():
                     outputFolderName = CT_FOLDER
                 elif "us" in value.lower():
@@ -147,92 +156,9 @@ def main(myblob: func.InputStream):
                     outputFolderName = MR_FOLDER
                 elif "bs" in value.lower():
                     outputFolderName = BS_FOLDER
-    logging.info("toby1")
-    print("toby2")
-    # print("----Key-value pairs found in document----")
-    # for kv_pair in result.key_value_pairs:
-    #     if kv_pair.key:
-    #         print(
-    #             "Key '{}' found within '{}' bounding regions".format(
-    #                 kv_pair.key.content,
-    #                 kv_pair.key.bounding_regions,
-    #             )
-    #         )
-    #     if kv_pair.value:
-    #         print(
-    #             "Value '{}' found within '{}' bounding regions\n".format(
-    #                 kv_pair.value.content,
-    #                 kv_pair.value.bounding_regions,
-    #             )
-    #         )
-
-    # print("----Tables found in document----")
-    # for table_idx, table in enumerate(result.tables):
-    #     print(
-    #         "Table # {} has {} rows and {} columns".format(
-    #             table_idx, table.row_count, table.column_count
-    #         )
-    #     )
-    #     for region in table.bounding_regions:
-    #         print(
-    #             "Table # {} location on page: {} is {}".format(
-    #                 table_idx,
-    #                 region.page_number,
-    #                 region.polygon,
-    #             )
-    #         )
-
-    # print("----Styles found in document----")
-    # for style in result.styles:
-    #     if style.is_handwritten:
-    #         print("Document contains handwritten content: ")
-    #         print(
-    #             ",".join(
-    #                 [
-    #                     result.content[span.offset : span.offset + span.length]
-    #                     for span in style.spans
-    #                 ]
-    #             )
-    #         )
-
-    # for page in result.pages:
-    #     print("----Analyzing document from page #{}----".format(page.page_number))
-    #     print(
-    #         "Page has width: {} and height: {}, measured with unit: {}".format(
-    #             page.width, page.height, page.unit
-    #         )
-    #     )
-
-    #     for line_idx, line in enumerate(page.lines):
-    #         words = line.get_words()
-    #         print(
-    #             "...Line # {} has {} words and text '{}' within bounding polygon '{}'".format(
-    #                 line_idx,
-    #                 len(words),
-    #                 line.content,
-    #                 line.polygon,
-    #             )
-    #         )
-
-    #         for word in words:
-    #             print(
-    #                 "......Word '{}' has a confidence of {}".format(
-    #                     word.content, word.confidence
-    #                 )
-    #             )
-
-    #     for selection_mark in page.selection_marks:
-    #         print(
-    #             "...Selection mark is '{}' within bounding polygon '{}' and has a confidence of {}".format(
-    #                 selection_mark.state,
-    #                 selection_mark.polygon,
-    #                 selection_mark.confidence,
-    #             )
-    #         )
-
-    # logging.info(f"filename: {os.path.basename(myblob.name)}\n")
-
-    # print("----------------------------------------")
+    # TODO: add logger and save to local file.
+    # logging.info("toby1")
+    # print("toby2")
 
     # convert the dictionary back to the original model
     model = AnalyzeResult.from_dict(analyze_result_dict)
@@ -249,11 +175,11 @@ def main(myblob: func.InputStream):
     # This is the connection to the blob storage, with the Azure Python SDK
 
     blob_service_client = BlobServiceClient.from_connection_string(
-        f"DefaultEndpointsProtocol=https;AccountName={storage_account_name};AccountKey={storage_account_key};EndpointSuffix=core.windows.net")
+        f"DefaultEndpointsProtocol=https;AccountName={storage_account_name};AccountKey={storage_account_key};EndpointSuffix=core.windows.net"
+    )
 
     # container_client = blob_service_client.get_container_client("output")
-    container_client = blob_service_client.get_container_client(
-        outputFolderName)
+    container_client = blob_service_client.get_container_client(outputFolderName)
     filename = os.path.basename(myblob.name)
 
     # save the dictionary as JSON content in a JSON file, use the AzureJSONEncoder
@@ -265,16 +191,12 @@ def main(myblob: func.InputStream):
         overwrite=True,
     )
     container_client.upload_blob(
-        name=(os.path.splitext(filename)[0]) + ".pdf",
-        data=source,
-        overwrite=True,
+        name=(os.path.splitext(filename)[0]) + ".pdf", data=source, overwrite=True,
     )
 
     # also save a copy
-    backup_container_client = blob_service_client.get_container_client(
-        "output")
+    backup_container_client = blob_service_client.get_container_client("output")
     backup_container_client.upload_blob(
-        name=(os.path.splitext(filename)[0]) + ".pdf",
-        data=source,
-        overwrite=True,
+        name=(os.path.splitext(filename)[0]) + ".pdf", data=source, overwrite=True,
     )
+
