@@ -2,16 +2,18 @@
 
 ## Intro
 
-In this repo, I used Azure Python SDK to design and implement a RPA process for PHC (providence health care) in Canada BC with the cooperation with Zoltan Bozoky (Technical Manager, PHC Emergent Technology).
+In this repo, I used Azure Python SDK to design and implement a RPA process for PHC (providence health care) in Canada BC with the cooperation with Zoltan Bozoky (Technical Manager, PHC Emergent Technology), Zhenjie Zhou, Yun Feng, and Yiwu Chen.
 
 The major goal of this project is to automate the image request processing, where the institute receives plenty of image request (ranging from ultrasound, ct, mri, breast scan, etc.) in different forms, sort them into associated folders, and send these forms for priority management. Based on the experiment, this RPA process can reduce the cost by 98.4% ($3.75 per request to $0.06), and reduce the time consumption by 94% (average 5 mins per request to 14 seconds.)
 
+This project is in urgent need as PHC has a growing backlog for image request processing due to limited processing ability (currently 8000+ requests in backlog). This project can greatly increase their capability of request processing and thus saving lives.
+
 ## Development
 
-Here are the 2 components of Azure python SDK I used:
+Here are the 2 major components for this project:
 
-1. The blob [tutorial](https://learn.microsoft.com/en-us/azure/applied-ai-services/form-recognizer/tutorial-azure-function?view=form-recog-3.0.0&source=docs) from Azure
-2. The pdf with form-recognizer in the capstone project 2022 (where we receive medical request forms and use key words to categorize them into several different pre-determined classes, and save to different containers accordingly.)
+1. The Azure python SDK [tutorial](https://learn.microsoft.com/en-us/azure/applied-ai-services/form-recognizer/tutorial-azure-function?view=form-recog-3.0.0&source=docs)
+2. The pdf-form-recognizer of Azure to extract key value pairs.
 
 ## Existing Approach
 
@@ -24,7 +26,7 @@ This is the existing approach where the major pain point is the heavily human la
 
 ## How to run
 
-Pretty much similar to the step mentioned in the blob tutorial above, and here're the summarized steps:
+Pretty much similar to the step mentioned in the Azure tutorial above, and here're the summarized steps:
 
 1. install required library and plugins (Azure Account, Azure Functions, Azure Resources, Python, etc.) recommend installation via the tutorial material.
 2. log in the azure account (via click the azure tab on the left tab bar of vs code.)
