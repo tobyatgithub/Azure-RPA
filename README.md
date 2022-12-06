@@ -61,7 +61,14 @@ Probably shall add a logging as (because this this this condition, thus file <..
 
 ## Presentation and Deliver
 
-Please refer to the ppt files in this repo:
+1. Mid process report ppt:
 
-1. Mid process report ppt: Medical Imaging RPA System.pptx
+   - Medical Imaging RPA System.pptx
+   - https://youtu.be/Yp2WQzTgg0w
+
 2. Final process report ppt:
+
+   - https://youtu.be/FqNQbTFk0mk
+
+3. Project Research Report:
+   - https://www.overleaf.com/1699915246kwjkvtdrchdz
